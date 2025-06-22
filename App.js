@@ -80,6 +80,8 @@ export default function App() {
   const fetchDishData = async (dishName = 'Fiorentina Steak') => {
     try {
       setLoading(true);
+      // Reset user rating when fetching new dish data
+      setUserRating(0);
       console.log('Fetching dish data for:', dishName);
       console.log('API URL:', `${API_BASE_URL}/dishes/${encodeURIComponent(dishName)}`);
       
@@ -169,15 +171,20 @@ export default function App() {
 
   const handleStarPress = (rating) => {
     setUserRating(rating);
+    // Automatically submit the rating
+    setTimeout(() => {
+      submitUserRating(rating);
+    }, 100);
   };
 
-  const submitUserRating = async () => {
-    if (!userRating || !dishData) return;
+  const submitUserRating = async (rating = null) => {
+    const currentRating = rating || userRating;
+    if (!currentRating || !dishData) return;
     
     setSubmittingFeedback(true);
     try {
       // Convert star rating to like/dislike feedback
-      const feedback = userRating >= 3 ? 'like' : 'dislike';
+      const feedback = currentRating >= 3 ? 'like' : 'dislike';
       
       const response = await fetch(`${API_BASE_URL}/dishes/${encodeURIComponent(dishData.name)}/feedback`, {
         method: 'POST',
@@ -188,13 +195,9 @@ export default function App() {
         body: JSON.stringify({ feedback }),
       });
       
-      if (response.ok) {
-        setShowFeedbackPage(false);
-        setUserRating(0);
-      }
+      // Keep the rating visible after submission - don't reset here
     } catch (err) {
-      setShowFeedbackPage(false);
-      setUserRating(0);
+      // Keep the rating visible even on error - don't reset here
     } finally {
       setSubmittingFeedback(false);
     }
@@ -234,6 +237,8 @@ export default function App() {
     console.log('Searching for:', query);
     setSearching(true);
     setNotFound(false); // Reset not found state
+    // Reset user rating when searching for new dish
+    setUserRating(0);
     
     try {
       const response = await fetch(`${API_BASE_URL}/dishes/${encodeURIComponent(query)}`, {
@@ -519,29 +524,6 @@ export default function App() {
                   </>
                 )}
                 
-                <TouchableOpacity 
-                  style={styles.primaryButton}
-                  onPress={() => {
-                    // Slower, smoother scroll to the Average Rating section
-                    setTimeout(() => {
-                      scrollViewRef.current?.scrollTo({ 
-                        y: 1000, // Scroll to approximate position of rating section
-                        animated: true 
-                      });
-                    }, 100);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.primaryButtonText}>See the average rating</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.secondaryButton}
-                  onPress={() => setShowFeedbackPage(true)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.secondaryButtonText}>Share your feedback</Text>
-                </TouchableOpacity>
                 
                 <Text style={styles.description}>
                   {dishData && dishData.description ? dishData.description : 'Loading description...'}
@@ -644,6 +626,37 @@ export default function App() {
                   </TouchableOpacity>
                 </View>
               )}
+            </View>
+
+            {/* Separation Line */}
+            <View style={styles.separationLine} />
+
+            {/* Submit Feedback Section */}
+            <View style={styles.ratingSection}>
+              <Text style={styles.seasonTitle}>Submit Feedback</Text>
+              <View style={styles.ratingMainContent}>
+                <View style={styles.ratingLeftContent}>
+                  <View style={styles.starsContainer}>
+                    {[1, 2, 3, 4, 5].map((starIndex) => (
+                      <TouchableOpacity
+                        key={starIndex}
+                        onPress={() => handleStarPress(starIndex)}
+                        activeOpacity={0.6}
+                        style={styles.starWrapper}
+                      >
+                        <Ionicons 
+                          name={starIndex <= userRating ? "star" : "star-outline"} 
+                          size={28} 
+                          color={starIndex <= userRating ? "#333" : "#E0E0E0"} 
+                          style={styles.starIcon}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={styles.ratingFrom}>your rating as {getNation(DEFAULT_NATIONALITY).flag} {DEFAULT_NATIONALITY}</Text>
+                  <Text style={styles.settingsHint}>you can change your nationality in settings</Text>
+                </View>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -1059,6 +1072,13 @@ const styles = StyleSheet.create({
     color: '#333',
     marginTop: 8,
     opacity: 0.8,
+  },
+  settingsHint: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+    opacity: 0.7,
+    fontStyle: 'italic',
   },
   countrySelectionPage: {
     flex: 1,
