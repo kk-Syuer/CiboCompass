@@ -669,7 +669,7 @@ export default function App() {
                     }}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.countryFlag}>{getNation(ratingCountry).flag}</Text>
+                    <Ionicons name="chevron-down-outline" size={24} color="#666" />
                   </TouchableOpacity>
                 </View>
               )}
