@@ -643,8 +643,16 @@ export default function App() {
             
             {/* Average Rating Section */}
             <View style={styles.ratingSection}>
-              <Text style={styles.seasonTitle}>Average Rating</Text>
-              {dishData && (
+              <TouchableOpacity
+                style={styles.ratingSectionContainer}       // 新增容器样式
+                activeOpacity={0.8}
+                onPress={() => {
+                  // 点击之后你想做什么？比如展开国家列表：
+                  setSelectedCountry(ratingCountry);
+                  setShowCountrySelection(true);
+                }}>
+                  <Text style={styles.seasonTitle}>Average Rating</Text>
+                  {dishData && (
                 <View style={styles.ratingMainContent}>
                   <View style={styles.ratingLeftContent}>
                     <View style={styles.starsContainer}>
@@ -673,6 +681,7 @@ export default function App() {
                   </TouchableOpacity>
                 </View>
               )}
+                </TouchableOpacity>
             </View>
 
             {/* Separation Line */}
