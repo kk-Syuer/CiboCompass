@@ -19,6 +19,7 @@ import {
   Modal,
   FlatList,
   TouchableHighlight,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -85,10 +86,25 @@ export default function App() {
   const [starsByNation, setStarsByNation] = React.useState(
     NATIONALITIES.map(n => ({ name: n.name, stars: 0 }))
   );
+
+  //for animation
+  const screenW = Dimensions.get('window').width;
+  // 用来控制国家列表面板的 translateX，从 screenW（看不见） 到 0
+  const countryAnim = React.useRef(new Animated.Value(screenW)).current;
+
   // 假设 dishName = "Pizza Margherita"
   const words = (dishData?.name || "Dish").split(' ');
   const first = words.shift();         // "Pizza"
   const rest  = words.join(' ');       // "Margherita"
+
+  React.useEffect(() => {
+    Animated.timing(countryAnim, {
+      toValue: showCountrySelection ? 0 : screenW,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [showCountrySelection]);
+
 
   const fetchDishData = async (dishName = 'Fiorentina Steak') => {
     try {
@@ -442,8 +458,21 @@ export default function App() {
           </View>
         </View>
             ) : showCountrySelection ? (
+              
               <View style={styles.countrySelectionPage}>
-                {/* — 新 Header：左箭头 + 菜名 — */}
+                <Animated.View
+                  style={[
+                    styles.countrySelectionPage,
+                    {
+                      transform: [{ translateX: countryAnim }],
+                      position: 'absolute',
+                      top: 0, left: 0, right: 0, bottom: 0,
+                      zIndex: 1000,
+                    },
+                  ]}
+                >
+                  {/* 你的国家列表内容，原封不动搬过来 */}
+                  {/* — 新 Header：左箭头 + 菜名 — */}
                 <View style={styles.countryPageHeader}>
                   <View style={styles.headerLeft}>
                     <TouchableOpacity
@@ -491,6 +520,8 @@ export default function App() {
                     </View>
                   )}
                 />
+                </Animated.View>
+                
               </View>
             ) : (
 
