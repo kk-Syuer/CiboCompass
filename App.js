@@ -19,7 +19,7 @@ import {
   Modal,
   FlatList,
   TouchableHighlight,
-  Dimensions,
+  Dimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -105,7 +105,25 @@ export default function App() {
     }).start();
   }, [showCountrySelection]);
 
-
+  const closeCountrySelection = () => {
+    Animated.timing(countryAnim, {
+      toValue: screenW,          // slide off to the right
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      // only once the animation has finished do we actually hide the panel
+      setShowCountrySelection(false);
+    });
+    
+  };
+  const openCountrySelection = () => {
+    setShowCountrySelection(true);
+    Animated.timing(countryAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };  
   const fetchDishData = async (dishName = 'Fiorentina Steak') => {
     try {
       setLoading(true);
@@ -373,15 +391,16 @@ export default function App() {
   }, [showCountrySelection, dishData]);
 
   return (
-    <View style={styles.container}>
+    
+    <><View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      
+
       {/* Feedback Page */}
       {showFeedbackPage ? (
         <View style={styles.feedbackPage}>
           <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-          
+
           {/* Header */}
           <View style={styles.feedbackPageHeader}>
             <TouchableOpacity
@@ -389,7 +408,7 @@ export default function App() {
               onPress={() => {
                 setUserRating(0);
                 setShowFeedbackPage(false);
-              }}
+              } }
               activeOpacity={0.6}
             >
               <Ionicons name="chevron-back" size={28} color="#007AFF" />
@@ -404,7 +423,7 @@ export default function App() {
                 if (userRating > 0) {
                   submitUserRating();
                 }
-              }}
+              } }
               disabled={userRating === 0}
               activeOpacity={userRating === 0 ? 1 : 0.6}
             >
@@ -414,14 +433,14 @@ export default function App() {
               ]}>Done</Text>
             </TouchableOpacity>
           </View>
-          
+
           {/* Feedback Content */}
           <View style={styles.feedbackContentSimple}>
             {/* Dish Name */}
             <Text style={styles.dishNameFeedback}>
               {dishData ? dishData.name : 'Loading...'}
             </Text>
-            
+
             {/* Nationality Info */}
             <Text style={styles.nationalityInfo}>
               Your nationality: {getNation(DEFAULT_NATIONALITY).flag} {DEFAULT_NATIONALITY}
@@ -429,7 +448,7 @@ export default function App() {
             <Text style={styles.nationalityNote}>
               You can change your nationality in settings
             </Text>
-            
+
             {/* Interactive Stars */}
             <View style={styles.interactiveStarsContainer}>
               {[1, 2, 3, 4, 5].map((starIndex) => (
@@ -439,15 +458,14 @@ export default function App() {
                   activeOpacity={0.6}
                   style={styles.starTouchable}
                 >
-                  <Ionicons 
-                    name={starIndex <= userRating ? "star" : "star-outline"} 
-                    size={40} 
-                    color={starIndex <= userRating ? "#000000" : "#E0E0E0"} 
-                  />
+                  <Ionicons
+                    name={starIndex <= userRating ? "star" : "star-outline"}
+                    size={40}
+                    color={starIndex <= userRating ? "#000000" : "#E0E0E0"} />
                 </TouchableOpacity>
               ))}
             </View>
-            
+
             {/* Loading Indicator */}
             {submittingFeedback && (
               <View style={styles.loadingContainer}>
@@ -457,301 +475,297 @@ export default function App() {
             )}
           </View>
         </View>
-            ) : showCountrySelection ? (
-              
-              <View style={styles.countrySelectionPage}>
-                <Animated.View
-                  style={[
-                    styles.countrySelectionPage,
-                    {
-                      transform: [{ translateX: countryAnim }],
-                      position: 'absolute',
-                      top: 0, left: 0, right: 0, bottom: 0,
-                      zIndex: 1000,
-                    },
-                  ]}
-                >
-                  {/* 你的国家列表内容，原封不动搬过来 */}
-                  {/* — 新 Header：左箭头 + 菜名 — */}
-                <View style={styles.countryPageHeader}>
-                  <View style={styles.headerLeft}>
-                    <TouchableOpacity
-                      
-                      onPress={() => setShowCountrySelection(false)}
-                      activeOpacity={0.6}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center'}}>
-                        <Ionicons name="chevron-back" size={20} color="#007AFF" style={styles.backButton} />
-                        <View style={{ flexDirection: 'column', marginLeft: 8 }}>
-                          <Text style={styles.headerDishName}>{first}</Text>
-                          <Text style={styles.headerDishName}>{rest}</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                  {/* 中间：Average Rating */}
-                  <Text style={styles.headerCenter}>Average Rating</Text>
-                </View>
+      ) : showCountrySelection ? (
 
-                {/* — 提示文字 — */}
-                <Text style={styles.promptText}>
-                  By Nations
-                </Text>
+        <View style={styles.countrySelectionPage}>
 
-                {/* — 平均星级列表 — */}
-                <FlatList
-                  data={starsByNation}
-                  keyExtractor={item => item.name}
-                  ItemSeparatorComponent={() => <View style={styles.sep} />}
-                  contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8 }}
-                  renderItem={({ item }) => (
-                    <View style={styles.itemRow}>
-                      <Text style={styles.nationText}>{item.name}</Text>
-                      <View style={styles.starsRow}>
-                        {[1, 2, 3, 4, 5].map(i => (
-                          <Ionicons
-                            key={i}
-                            name={i <= item.stars ? 'star' : 'star-outline'}
-                            size={20}
-                            style={{ marginHorizontal: 2 }}
-                          />
-                        ))}
-                      </View>
-                    </View>
-                  )}
-                />
-                </Animated.View>
-                
-              </View>
-            ) : (
 
-      <>
-      {/* Fixed Navigation Header */}
-      <View style={styles.navigationHeader}>
-        <View style={styles.searchWrapper}>
-          <BlurView intensity={30} tint="dark" style={styles.searchBlur} />
-          <View style={styles.searchDarkOverlay} />
-          <View style={styles.searchContainer}>
-            {searching ? (
-              <ActivityIndicator size="small" color="white" style={styles.searchIcon} />
-            ) : (
-              <Ionicons name="search" size={20} color="white" style={styles.searchIcon} />
-            )}
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search"
-              placeholderTextColor="rgba(255,255,255,0.7)"
-              value={searchText}
-              onChangeText={setSearchText}
-              onSubmitEditing={handleSearch}
-              returnKeyType="search"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!searching}
-            />
-          </View>
-        </View>
-      </View>
-
-      {/* Not Found State */}
-      {notFound ? (
-        <View style={styles.notFoundContainer}>
-          <View style={styles.notFoundContent}>
-            <Text style={styles.notFoundTitle}>Dish not found</Text>
-            <Text style={styles.notFoundMessage}>
-              We couldn't find that dish in our collection.{'\n'}
-              Please try searching for another dish.
-            </Text>
-          </View>
         </View>
       ) : (
-        /* Main Content Area with background extending to top */
-        <Animated.View style={[styles.heroSection, { transform: [{ translateY: keyboardOffset }] }]}>
-          <ScrollView 
-          ref={scrollViewRef}
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          bounces={true}
-          alwaysBounceVertical={false}
-          bouncesZoom={false}
-          showsVerticalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onScroll={(event) => {
-            setScrollPosition(event.nativeEvent.contentOffset.y);
-          }}
-        >
-          <ImageBackground 
-            source={dishData && dishData.img ? { uri: getImageUrl(dishData.img) } : require('./imgs/Fiorentina_Steak.jpg')}
-            style={styles.backgroundImage}
-            resizeMode="cover"
-          >
-            <View style={styles.gradient}>
-              <BlurView intensity={30} tint="dark" style={styles.blurOverlay} />
-              <View style={styles.darkOverlay} />
-              <View style={styles.contentContainer}>
-                {dishData && dishData.name ? (
-                  dishData.name.split(' ').map((word, index) => (
-                    <Text key={index} style={[styles.showTitle, index > 0 && styles.secondTitle]}>
-                      {word}
-                    </Text>
-                  ))
+
+        <>
+          {/* Fixed Navigation Header */}
+          <View style={styles.navigationHeader}>
+            <View style={styles.searchWrapper}>
+              <BlurView intensity={30} tint="dark" style={styles.searchBlur} />
+              <View style={styles.searchDarkOverlay} />
+              <View style={styles.searchContainer}>
+                {searching ? (
+                  <ActivityIndicator size="small" color="white" style={styles.searchIcon} />
                 ) : (
-                  <>
-                    <Text style={styles.showTitle}>Fiorentina</Text>
-                    <Text style={[styles.showTitle, styles.secondTitle]}>Steak</Text>
-                  </>
+                  <Ionicons name="search" size={20} color="white" style={styles.searchIcon} />
                 )}
-                
-                
-                <Text style={styles.description}>
-                  {dishData && dishData.description ? dishData.description : 'Loading description...'}
-                </Text>
-                
-                <View style={styles.qualityBadges}>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>Vegetarian</Text>
-                  </View>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>Gluten-Free</Text>
-                  </View>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>Dairy</Text>
-                  </View>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>High Protein</Text>
-                  </View>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>Italian</Text>
-                  </View>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>Comfort Food</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </ImageBackground>
-
-          {/* White Section */}
-          <View style={styles.whiteSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.seasonTitle}>Main Ingredients</Text>
-              <Ionicons name="chevron-forward" size={24} color="#666" style={styles.scrollIndicator} />
-            </View>
-            {dishData && dishData.ingredients && dishData.ingredients.length > 0 ? (
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.ingredientsScrollContainer}
-                style={styles.ingredientsScrollView}
-                nestedScrollEnabled={false}
-              >
-                {dishData.ingredients.map((ingredient, index) => (
-                  <View key={ingredient.id} style={[
-                    styles.ingredientContainer,
-                    index === 0 && styles.firstIngredientContainer,
-                    index === dishData.ingredients.length - 1 && styles.lastIngredientContainer
-                  ]}>
-                    <View style={styles.ingredientBox}>
-                      <Image 
-                        source={{ uri: getImageUrl(ingredient.img) }} 
-                        style={styles.ingredientBoxImage}
-                        resizeMode="cover"
-                      />
-                    </View>
-                    <View style={styles.ingredientLabel}>
-                      <Text style={styles.ingredientNumber}>{index + 1}</Text>
-                      <Text style={styles.ingredientName}>{ingredient.name}</Text>
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              <Text style={styles.noIngredientsText}>No ingredients available</Text>
-            )}
-            
-            {/* Separation Line */}
-            <View style={styles.separationLine} />
-            
-            {/* Average Rating Section */}
-            <View style={styles.ratingSection}>
-              <TouchableOpacity
-                style={styles.ratingSectionContainer}       // 新增容器样式
-                activeOpacity={0.8}
-                onPress={() => {
-                  // 点击之后你想做什么？比如展开国家列表：
-                  setSelectedCountry(ratingCountry);
-                  setShowCountrySelection(true);
-                }}>
-                  <Text style={styles.seasonTitle}>Average Rating</Text>
-                  {dishData && (
-                <View style={styles.ratingMainContent}>
-                  <View style={styles.ratingLeftContent}>
-                    <View style={styles.starsContainer}>
-                      {[1, 2, 3, 4, 5].map((starIndex) => (
-                        <View key={starIndex} style={styles.starWrapper}>
-                          <Ionicons 
-                            name={starIndex <= getStarRating(dishData.like, dishData.dislike) ? "star" : "star-outline"} 
-                            size={28} 
-                            color="#333" 
-                            style={styles.starIcon}
-                          />
-                        </View>
-                      ))}
-                    </View>
-                    <Text style={styles.ratingFrom}>from users in {ratingCountry}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.countryButton}
-                    onPress={() => {
-                      setSelectedCountry(ratingCountry);
-                      setShowCountrySelection(true);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="chevron-down-outline" size={24} color="#666" />
-                  </TouchableOpacity>
-                </View>
-              )}
-                </TouchableOpacity>
-            </View>
-
-            {/* Separation Line */}
-            <View style={styles.separationLine} />
-
-            {/* Submit Feedback Section */}
-            <View style={styles.ratingSection}>
-              <Text style={styles.seasonTitle}>Submit Feedback</Text>
-              <View style={styles.ratingMainContent}>
-                <View style={styles.ratingLeftContent}>
-                  <View style={styles.starsContainer}>
-                    {[1, 2, 3, 4, 5].map((starIndex) => (
-                      <TouchableOpacity
-                        key={starIndex}
-                        onPress={() => handleStarPress(starIndex)}
-                        activeOpacity={0.6}
-                        style={styles.starWrapper}
-                      >
-                        <Ionicons 
-                          name={starIndex <= userRating ? "star" : "star-outline"} 
-                          size={28} 
-                          color={starIndex <= userRating ? "#333" : "#E0E0E0"} 
-                          style={styles.starIcon}
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  <Text style={styles.ratingFrom}>your rating as {getNation(DEFAULT_NATIONALITY).flag} {DEFAULT_NATIONALITY}</Text>
-                  <Text style={styles.settingsHint}>you can change your nationality in settings</Text>
-                </View>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search"
+                  placeholderTextColor="rgba(255,255,255,0.7)"
+                  value={searchText}
+                  onChangeText={setSearchText}
+                  onSubmitEditing={handleSearch}
+                  returnKeyType="search"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!searching} />
               </View>
             </View>
           </View>
-        </ScrollView>
-        </Animated.View>
+
+          {/* Not Found State */}
+          {notFound ? (
+            <View style={styles.notFoundContainer}>
+              <View style={styles.notFoundContent}>
+                <Text style={styles.notFoundTitle}>Dish not found</Text>
+                <Text style={styles.notFoundMessage}>
+                  We couldn't find that dish in our collection.{'\n'}
+                  Please try searching for another dish.
+                </Text>
+              </View>
+            </View>
+          ) : (
+            /* Main Content Area with background extending to top */
+            <Animated.View style={[styles.heroSection, { transform: [{ translateY: keyboardOffset }] }]}>
+
+              <ScrollView
+                ref={scrollViewRef}
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                bounces={true}
+                alwaysBounceVertical={false}
+                bouncesZoom={false}
+                showsVerticalScrollIndicator={false}
+                scrollEventThrottle={16}
+                onScroll={(event) => {
+                  setScrollPosition(event.nativeEvent.contentOffset.y);
+                } }
+              >
+                <ImageBackground
+                  source={dishData && dishData.img ? { uri: getImageUrl(dishData.img) } : require('./imgs/Fiorentina_Steak.jpg')}
+                  style={styles.backgroundImage}
+                  resizeMode="cover"
+                >
+                  <View style={styles.gradient}>
+                    <BlurView intensity={30} tint="dark" style={styles.blurOverlay} />
+                    <View style={styles.darkOverlay} />
+                    <View style={styles.contentContainer}>
+                      {dishData && dishData.name ? (
+                        dishData.name.split(' ').map((word, index) => (
+                          <Text key={index} style={[styles.showTitle, index > 0 && styles.secondTitle]}>
+                            {word}
+                          </Text>
+                        ))
+                      ) : (
+                        <>
+                          <Text style={styles.showTitle}>Fiorentina</Text>
+                          <Text style={[styles.showTitle, styles.secondTitle]}>Steak</Text>
+                        </>
+                      )}
+
+
+                      <Text style={styles.description}>
+                        {dishData && dishData.description ? dishData.description : 'Loading description...'}
+                      </Text>
+
+                      <View style={styles.qualityBadges}>
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>Vegetarian</Text>
+                        </View>
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>Gluten-Free</Text>
+                        </View>
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>Dairy</Text>
+                        </View>
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>High Protein</Text>
+                        </View>
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>Italian</Text>
+                        </View>
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>Comfort Food</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </ImageBackground>
+
+                {/* White Section */}
+                <View style={styles.whiteSection}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.seasonTitle}>Main Ingredients</Text>
+                    <Ionicons name="chevron-forward" size={24} color="#666" style={styles.scrollIndicator} />
+                  </View>
+                  {dishData && dishData.ingredients && dishData.ingredients.length > 0 ? (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.ingredientsScrollContainer}
+                      style={styles.ingredientsScrollView}
+                      nestedScrollEnabled={false}
+                    >
+                      {dishData.ingredients.map((ingredient, index) => (
+                        <View key={ingredient.id} style={[
+                          styles.ingredientContainer,
+                          index === 0 && styles.firstIngredientContainer,
+                          index === dishData.ingredients.length - 1 && styles.lastIngredientContainer
+                        ]}>
+                          <View style={styles.ingredientBox}>
+                            <Image
+                              source={{ uri: getImageUrl(ingredient.img) }}
+                              style={styles.ingredientBoxImage}
+                              resizeMode="cover" />
+                          </View>
+                          <View style={styles.ingredientLabel}>
+                            <Text style={styles.ingredientNumber}>{index + 1}</Text>
+                            <Text style={styles.ingredientName}>{ingredient.name}</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </ScrollView>
+                  ) : (
+                    <Text style={styles.noIngredientsText}>No ingredients available</Text>
+                  )}
+
+                  {/* Separation Line */}
+                  <View style={styles.separationLine} />
+
+                  {/* Average Rating Section */}
+                  <View style={styles.ratingSection}>
+                    <TouchableOpacity
+                      style={styles.ratingSectionContainer} // 新增容器样式
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        // 点击之后你想做什么？比如展开国家列表：
+                        setSelectedCountry(ratingCountry);
+                        setShowCountrySelection(true);
+                      } }>
+                      <Text style={styles.seasonTitle}>Average Rating</Text>
+                      {dishData && (
+                        <View style={styles.ratingMainContent}>
+                          <View style={styles.ratingLeftContent}>
+                            <View style={styles.starsContainer}>
+                              {[1, 2, 3, 4, 5].map((starIndex) => (
+                                <View key={starIndex} style={styles.starWrapper}>
+                                  <Ionicons
+                                    name={starIndex <= getStarRating(dishData.like, dishData.dislike) ? "star" : "star-outline"}
+                                    size={28}
+                                    color="#333"
+                                    style={styles.starIcon} />
+                                </View>
+                              ))}
+                            </View>
+                            <Text style={styles.ratingFrom}>from users in {ratingCountry}</Text>
+                          </View>
+                          <TouchableOpacity
+                            style={styles.countryButton}
+                            onPress={() => {
+                              setSelectedCountry(ratingCountry);
+                              setShowCountrySelection(true);
+                            } }
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="chevron-down-outline" size={24} color="#666" />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Separation Line */}
+                  <View style={styles.separationLine} />
+
+                  {/* Submit Feedback Section */}
+                  <View style={styles.ratingSection}>
+                    <Text style={styles.seasonTitle}>Submit Feedback</Text>
+                    <View style={styles.ratingMainContent}>
+                      <View style={styles.ratingLeftContent}>
+                        <View style={styles.starsContainer}>
+                          {[1, 2, 3, 4, 5].map((starIndex) => (
+                            <TouchableOpacity
+                              key={starIndex}
+                              onPress={() => handleStarPress(starIndex)}
+                              activeOpacity={0.6}
+                              style={styles.starWrapper}
+                            >
+                              <Ionicons
+                                name={starIndex <= userRating ? "star" : "star-outline"}
+                                size={28}
+                                color={starIndex <= userRating ? "#333" : "#E0E0E0"}
+                                style={styles.starIcon} />
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                        <Text style={styles.ratingFrom}>your rating as {getNation(DEFAULT_NATIONALITY).flag} {DEFAULT_NATIONALITY}</Text>
+                        <Text style={styles.settingsHint}>you can change your nationality in settings</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </ScrollView>
+            </Animated.View>
+          )}
+        </>
       )}
-      </>
-      )}
-    </View>
+    </View><Animated.View
+      pointerEvents={showCountrySelection ? 'auto' : 'none'}
+      style={[
+        styles.countrySelectionPage,
+        {
+          transform: [{ translateX: countryAnim }],
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          zIndex: 1000,
+        },
+      ]}
+    >
+        {/* 你的国家列表内容，原封不动搬过来 */}
+        {/* — 新 Header：左箭头 + 菜名 — */}
+        <View style={styles.countryPageHeader}>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity
+
+              onPress={closeCountrySelection}
+              activeOpacity={0.6}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="chevron-back" size={20} color="#007AFF" style={styles.backButton} />
+                <View style={{ flexDirection: 'column', marginLeft: 8 }}>
+                  <Text style={styles.headerDishName}>{first}</Text>
+                  <Text style={styles.headerDishName}>{rest}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+          {/* 中间：Average Rating */}
+          <Text style={styles.headerCenter}>Average Rating</Text>
+        </View>
+
+        {/* — 提示文字 — */}
+        <Text style={styles.promptText}>
+          By Nations
+        </Text>
+
+        {/* — 平均星级列表 — */}
+        <FlatList
+          data={starsByNation}
+          keyExtractor={item => item.name}
+          ItemSeparatorComponent={() => <View style={styles.sep} />}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8 }}
+          renderItem={({ item }) => (
+            <View style={styles.itemRow}>
+              <Text style={styles.nationText}>{item.name}</Text>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <Ionicons
+                    key={i}
+                    name={i <= item.stars ? 'star' : 'star-outline'}
+                    size={20}
+                    style={{ marginHorizontal: 2 }} />
+                ))}
+              </View>
+            </View>
+          )} />
+      </Animated.View></>
   );
 }
 
