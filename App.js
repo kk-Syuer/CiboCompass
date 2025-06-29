@@ -16,22 +16,24 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Modal
+  Modal,
+  FlatList,
+  TouchableHighlight,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
-const API_BASE_URL = 'http://172.20.10.4:4000/v1';
-const IMAGES_BASE_URL = 'http://172.20.10.4:4000';
+const API_BASE_URL = 'http://192.168.43.144:4000/v1';
+const IMAGES_BASE_URL = 'http://192.168.43.144:4000';
 const DEFAULT_NATIONALITY = 'Italy';
 
 const NATIONALITIES = [
-  { name: 'Italy', flag: '🇮🇹' },
   { name: 'France', flag: '🇫🇷' },
   { name: 'India', flag: '🇮🇳' },
-  { name: 'USA', flag: '🇺🇸' },
+  { name: 'Italy', flag: '🇮🇹' },
   { name: 'Japan', flag: '🇯🇵' },
+  { name: 'USA', flag: '🇺🇸' },
 ];
 
 const getNation = v => NATIONALITIES.find(n => n.name === v) || { name: v, flag: '🌍' };
@@ -61,6 +63,8 @@ const getStarRating = (like, dislike) => {
   return 0;
 };
 
+
+
 export default function App() {
   const [searchText, setSearchText] = React.useState('');
   const [dishData, setDishData] = React.useState(null);
@@ -76,6 +80,15 @@ export default function App() {
   const [scrollPosition, setScrollPosition] = React.useState(0);
   const scrollViewRef = React.useRef(null);
   const keyboardOffset = React.useRef(new Animated.Value(0)).current;
+
+    // ─── 新增：存放每个国家的平均星级（整数 0～5）
+  const [starsByNation, setStarsByNation] = React.useState(
+    NATIONALITIES.map(n => ({ name: n.name, stars: 0 }))
+  );
+  // 假设 dishName = "Pizza Margherita"
+  const words = (dishData?.name || "Dish").split(' ');
+  const first = words.shift();         // "Pizza"
+  const rest  = words.join(' ');       // "Margherita"
 
   const fetchDishData = async (dishName = 'Fiorentina Steak') => {
     try {
@@ -308,7 +321,40 @@ export default function App() {
       keyboardWillHideListener.remove();
     };
   }, []);
-
+  
+  // ─── 新增：当 showCountrySelection 打开，并且 dishData 已有时，批量取各国 like/dislike 并算星
+  React.useEffect(() => {
+    if (showCountrySelection && dishData) {
+      const fetchAll = async () => {
+        const arr = await Promise.all(
+          NATIONALITIES.map(async (nat) => {
+            try {
+              const res = await fetch(
+                `${API_BASE_URL}/dishes/${encodeURIComponent(dishData.name)}`,
+                {
+                  method: 'GET',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Nationality': nat.name,
+                  },
+                }
+              );
+              const json = await res.json();
+              if (json.success && json.data) {
+                const { like, dislike } = json.data;
+                return { name: nat.name, stars: getStarRating(like, dislike) };
+              }
+            } catch (e) {
+              console.warn(`Error loading ${nat.name}`, e);
+            }
+            return { name: nat.name, stars: 0 };
+          })
+        );
+        setStarsByNation(arr);
+      };
+      fetchAll();
+    }
+  }, [showCountrySelection, dishData]);
 
   return (
     <View style={styles.container}>
@@ -395,58 +441,59 @@ export default function App() {
             )}
           </View>
         </View>
-      ) : showCountrySelection ? (
-        <View style={styles.countrySelectionPage}>
-          <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-          
-          {/* Header */}
-          <View style={styles.countryPageHeader}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => {
-                setSelectedCountry(ratingCountry); // Reset to current country
-                setShowCountrySelection(false);
-              }}
-              activeOpacity={0.6}
-            >
-              <Ionicons name="chevron-back" size={28} color="#007AFF" />
-            </TouchableOpacity>
-            <Text style={styles.countryPageTitle}>Choose Country</Text>
-            <TouchableOpacity
-              style={styles.doneButton}
-              onPress={handleDonePress}
-              activeOpacity={0.6}
-            >
-              <Text style={styles.doneButtonText}>Done</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {/* Country List */}
-          <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
-            {NATIONALITIES.map(nat => (
-              <TouchableOpacity
-                key={nat.name}
-                style={[
-                  styles.countryListItem,
-                  selectedCountry === nat.name && styles.selectedCountryItem
-                ]}
-                onPress={() => handleCountrySelection(nat.name)}
-                activeOpacity={0.6}
-              >
-                <Text style={[
-                  styles.countryItemText,
-                  selectedCountry === nat.name && styles.selectedCountryText
-                ]}>
-                  {nat.name}
+            ) : showCountrySelection ? (
+              <View style={styles.countrySelectionPage}>
+                {/* — 新 Header：左箭头 + 菜名 — */}
+                <View style={styles.countryPageHeader}>
+                  <View style={styles.headerLeft}>
+                    <TouchableOpacity
+                      
+                      onPress={() => setShowCountrySelection(false)}
+                      activeOpacity={0.6}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center'}}>
+                        <Ionicons name="chevron-back" size={20} color="#007AFF" style={styles.backButton} />
+                        <View style={{ flexDirection: 'column', marginLeft: 8 }}>
+                          <Text style={styles.headerDishName}>{first}</Text>
+                          <Text style={styles.headerDishName}>{rest}</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                  {/* 中间：Average Rating */}
+                  <Text style={styles.headerCenter}>Average Rating</Text>
+                </View>
+
+                {/* — 提示文字 — */}
+                <Text style={styles.promptText}>
+                  By Nations
                 </Text>
-                {selectedCountry === nat.name && (
-                  <Ionicons name="checkmark" size={24} color="#007AFF" />
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      ) : (
+
+                {/* — 平均星级列表 — */}
+                <FlatList
+                  data={starsByNation}
+                  keyExtractor={item => item.name}
+                  ItemSeparatorComponent={() => <View style={styles.sep} />}
+                  contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8 }}
+                  renderItem={({ item }) => (
+                    <View style={styles.itemRow}>
+                      <Text style={styles.nationText}>{item.name}</Text>
+                      <View style={styles.starsRow}>
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <Ionicons
+                            key={i}
+                            name={i <= item.stars ? 'star' : 'star-outline'}
+                            size={20}
+                            style={{ marginHorizontal: 2 }}
+                          />
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                />
+              </View>
+            ) : (
+
       <>
       {/* Fixed Navigation Header */}
       <View style={styles.navigationHeader}>
@@ -1085,15 +1132,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
   },
   countryPageHeader: {
+    height: 60,                     // 固定高度
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center',           // 垂直居中
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 60,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 0.5,
+    backgroundColor: '#FFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#C6C6C8',
+    paddingHorizontal: 16,
   },
   backButton: {
     padding: 8,
@@ -1206,4 +1252,74 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     textAlign: 'center',
   },
+
+    promptText: {
+    fontSize: 16,
+    fontWeight: '500',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#333',
+  },
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  nationText: {
+    fontSize: 16,
+  },
+  starsRow: {
+    flexDirection: 'row',
+  },
+  sep: {
+    height: 1,
+    backgroundColor: '#E0E0E0',
+  },
+  // Header 容器保持高度、白底、底部细线
+countryPageHeader: {
+  paddingTop:60,
+  paddingBottom:16,
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#FFFFFF',
+  borderBottomWidth: StyleSheet.hairlineWidth,
+  borderBottomColor: '#C6C6C8',
+  paddingHorizontal: 16,
+  position: 'relative',
+},
+
+// 左侧一组：Back + DishName
+headerLeft: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingRight:30
+},
+
+// 回退按钮
+backButton: {
+  width: 20,
+  height: 20,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+// 菜名文字
+headerDishName: {
+  fontSize: 12,
+  fontWeight: '400',
+  color: '#000000',
+  marginLeft: 0,
+  color:"#007AFF",
+},
+
+// 中心文字
+headerCenter: {
+  left: 0,
+  right: 0,
+  textAlign: 'center',
+  fontSize: 17,
+  fontWeight: '600',
+  color: '#000000',
+},
+
 });
