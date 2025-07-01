@@ -11,6 +11,7 @@ import {
   Platform,
   StatusBar,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 
 // 本地示例数据
@@ -48,9 +49,16 @@ export default function SearchScreen({ navigation }) {
           numColumns={2}
           columnWrapperStyle={styles.row}
           renderItem={({ item }) => (
+            
             <View style={styles.card}>
-              <Image source={item.img} style={styles.thumb} />
-              <Text style={styles.cardText}>{item.name}</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('Detail', { dishName: item.name })
+                }
+              >
+                <Image source={item.img} style={styles.thumb} />
+                <Text style={styles.cardText}>{item.name}</Text>
+              </TouchableOpacity>
             </View>
           )}
           contentContainerStyle={styles.list}
@@ -77,6 +85,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     marginBottom: 12,
+    color: 'black',
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
   search: {
     backgroundColor: '#f2f2f7',
