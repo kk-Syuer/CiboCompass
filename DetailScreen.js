@@ -25,8 +25,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
-const API_BASE_URL = 'http://192.168.43.144:4000/v1';
-const IMAGES_BASE_URL = 'http://192.168.43.144:4000';
+const API_BASE_URL = 'http://192.168.182.216:4000/v1';
+const IMAGES_BASE_URL = 'http://192.168.182.216:4000';
 const DEFAULT_NATIONALITY = 'France';
 
 const NATIONALITIES = [
@@ -36,6 +36,33 @@ const NATIONALITIES = [
   { name: 'Japan', flag: '🇯🇵' },
   { name: 'USA', flag: '🇺🇸' },
 ];
+
+// map dish name → array of badge labels
+const BADGE_MAP = {
+  'Pizza Margherita': [
+    'Vegetarian',
+    'Lacto-Vegetarian',
+    'Nut-Free',
+    'Egg-Free',
+    'Shellfish-Free',
+  ],
+  'Spaghetti Carbonara': [
+    'Nut-Free',
+    'Shellfish-Free',
+    'Low-Sugar',
+  ],
+  'Fiorentina Steak': [
+    'Gluten-Free',
+    'Dairy-Free',
+    'Nut-Free',
+    'Egg-Free',
+    'Shellfish-Free',
+    'Low-Carb',
+    'Keto',
+    'High-Protein',
+  ],
+  // …any other dishes…
+};
 
 const getNation = v => NATIONALITIES.find(n => n.name === v) || { name: v, flag: '🌍' };
 
@@ -88,7 +115,7 @@ export default function DetailScreen({ route, navigation }) {
   );
   
   const [countryFilter, setCountryFilter] = React.useState('');
-
+  const badges = BADGE_MAP[dishName] || []; 
 
   //for animation
   const screenW = Dimensions.get('window').width;
@@ -555,26 +582,13 @@ export default function DetailScreen({ route, navigation }) {
                         {dishData && dishData.description ? dishData.description : 'Loading description...'}
                       </Text>
 
-                      <View style={styles.qualityBadges}>
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>Vegetarian</Text>
+                    <View style={styles.qualityBadges}>
+                        {badges.map(label => (
+                            <View key={label} style={styles.badge}>
+                            <Text style={styles.badgeText}>{label}</Text>
+                            </View>
+                        ))}
                         </View>
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>Gluten-Free</Text>
-                        </View>
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>Dairy</Text>
-                        </View>
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>High Protein</Text>
-                        </View>
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>Italian</Text>
-                        </View>
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>Comfort Food</Text>
-                        </View>
-                      </View>
                     </View>
                   </View>
                 </ImageBackground>
