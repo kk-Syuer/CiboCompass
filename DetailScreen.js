@@ -25,9 +25,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
-const API_BASE_URL = 'http://192.168.182.216:4000/v1';
-const IMAGES_BASE_URL = 'http://192.168.182.216:4000';
+const API_BASE_URL = 'http://172.20.10.2/v1';
+const IMAGES_BASE_URL = 'http://172.20.10.2:4000';
 const DEFAULT_NATIONALITY = 'France';
+
 
 const NATIONALITIES = [
   { name: 'France', flag: '🇫🇷' },
@@ -116,7 +117,7 @@ export default function DetailScreen({ route, navigation }) {
   
   const [countryFilter, setCountryFilter] = React.useState('');
   const badges = BADGE_MAP[dishName] || []; 
-
+  const scrollPositionRef = React.useRef(0);
   //for animation
   const screenW = Dimensions.get('window').width;
   // 用来控制国家列表面板的 translateX，从 screenW（看不见） 到 0
@@ -126,7 +127,6 @@ export default function DetailScreen({ route, navigation }) {
   const words = (dishData?.name || "Dish").split(' ');
   const first = words.shift();         // "Pizza"
   const rest  = words.join(' ');       // "Margherita"
-
   React.useEffect(() => {
     Animated.timing(countryAnim, {
       toValue: showCountrySelection ? 0 : screenW,
@@ -135,19 +135,28 @@ export default function DetailScreen({ route, navigation }) {
     }).start();
   }, [showCountrySelection]);
 
-  const closeCountrySelection = () => {
-    // first, dismiss any open keyboard:
-    Keyboard.dismiss();
-    Animated.timing(countryAnim, {
-      toValue: screenW,          // slide off to the right
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      // only once the animation has finished do we actually hide the panel
-      setShowCountrySelection(false);
-    });
-    
-  };
+const closeCountrySelection = () => {
+  Keyboard.dismiss();
+
+  Animated.timing(countryAnim, {
+    toValue: screenW,
+    duration: 300,
+    useNativeDriver: true,
+  }).start(() => {
+    // hide the panel
+    setShowCountrySelection(false);
+
+    // wait a tick for the detail view to re-layout, then restore scroll
+    setTimeout(() => {
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({
+          y: scrollPositionRef.current,
+          animated: false,  // or true if you want a smooth slide
+        });
+      }
+    }, 50);
+  });
+};
   const openCountrySelection = () => {
     setShowCountrySelection(true);
     Animated.timing(countryAnim, {
@@ -545,6 +554,7 @@ export default function DetailScreen({ route, navigation }) {
             <Animated.View style={[styles.heroSection, { transform: [{ translateY: keyboardOffset }] }]}>
 
               <ScrollView
+
                 ref={scrollViewRef}
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
@@ -554,7 +564,7 @@ export default function DetailScreen({ route, navigation }) {
                 showsVerticalScrollIndicator={false}
                 scrollEventThrottle={16}
                 onScroll={(event) => {
-                  setScrollPosition(event.nativeEvent.contentOffset.y);
+                    scrollPositionRef.current = event.nativeEvent.contentOffset.y;
                 } }
               >
                 <ImageBackground
@@ -701,7 +711,7 @@ export default function DetailScreen({ route, navigation }) {
                             </TouchableOpacity>
                           ))}
                         </View>
-                        <Text style={styles.ratingFrom}>your rating as {getNation(DEFAULT_NATIONALITY).flag} {DEFAULT_NATIONALITY}</Text>
+                        <Text style={styles.ratingFrom}>your rating as {getNation(DEFAULT_NATIONALITY).flag} {'French'}</Text>
                         <Text style={styles.settingsHint}>you can change your nationality in settings</Text>
                       </View>
                     </View>
