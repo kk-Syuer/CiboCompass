@@ -139,7 +139,7 @@ export default function DetailScreen({ route, navigation }) {
         // scroll position restoration if desired
         scrollViewRef.current?.scrollTo({
         y: scrollPositionRef.current,
-        animated: false,
+        animated: true,
         });
     });
     };
@@ -171,7 +171,7 @@ const closeCountrySelection = () => {
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({
           y: scrollPositionRef.current,
-          animated: false,  // or true if you want a smooth slide
+          animated: true,  // or true if you want a smooth slide
         });
       }
     }, 50);
@@ -700,7 +700,8 @@ const closeCountrySelection = () => {
                             } }
                             activeOpacity={0.8}
                           >
-                            <Ionicons name="chevron-down-outline" size={24} color="#666" />
+                            <Text style={styles.moreText}>More</Text>
+                             <Ionicons name="chevron-down-outline" size={20} color="#666" />
                           </TouchableOpacity>
                         </View>
                       )}
@@ -1212,9 +1213,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   countryButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 60,
+    height: 50,
+    borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.9)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1224,6 +1225,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     marginLeft: 16,
+    paddinng:5,
   },
   countryFlag: {
     fontSize: 24,
@@ -1584,4 +1586,10 @@ countrySelectionPage: {
   countryCardStars: {
     flexDirection: 'row',
   },
+  moreText: {
+  fontSize: 16,
+  fontWeight: '250',
+  color: '#666',
+
+}
 });
