@@ -136,6 +136,8 @@ export default function DetailScreen({ route, navigation }) {
   }, [showCountrySelection]);
 
   const closeCountrySelection = () => {
+    // first, dismiss any open keyboard:
+    Keyboard.dismiss();
     Animated.timing(countryAnim, {
       toValue: screenW,          // slide off to the right
       duration: 300,
