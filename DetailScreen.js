@@ -25,8 +25,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
-const API_BASE_URL = 'http://172.20.10.2/v1';
-const IMAGES_BASE_URL = 'http://172.20.10.2:4000';
+const API_BASE_URL = 'http://192.168.182.216:4000/v1';
+const IMAGES_BASE_URL = 'http://192.168.182.216:4000';
 const DEFAULT_NATIONALITY = 'France';
 
 
@@ -123,6 +123,26 @@ export default function DetailScreen({ route, navigation }) {
   // 用来控制国家列表面板的 translateX，从 screenW（看不见） 到 0
   const countryAnim = React.useRef(new Animated.Value(screenW)).current;
 
+    // When tapping a country card:
+    const handleCountryCardPress = async (country) => {
+    // 1. Dismiss keyboard & animate panel closed
+    Keyboard.dismiss();
+    Animated.timing(countryAnim, {
+        toValue: screenW,
+        duration: 300,
+        useNativeDriver: true,
+    }).start(async () => {
+        setShowCountrySelection(false);
+        // 2. Update rating country & fetch new data
+        setRatingCountry(country);
+        await fetchDishForCountry(country);
+        // scroll position restoration if desired
+        scrollViewRef.current?.scrollTo({
+        y: scrollPositionRef.current,
+        animated: false,
+        });
+    });
+    };
   // 假设 dishName = "Pizza Margherita"
   const words = (dishData?.name || "Dish").split(' ');
   const first = words.shift();         // "Pizza"
@@ -278,7 +298,7 @@ const closeCountrySelection = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-User-Nationality': DEFAULT_NATIONALITY,
+          'X-User-Nationality': ratingCountry,    // ← now dynamic
         },
         body: JSON.stringify({ feedback }),
       });
@@ -711,8 +731,7 @@ const closeCountrySelection = () => {
                             </TouchableOpacity>
                           ))}
                         </View>
-                        <Text style={styles.ratingFrom}>your rating as {getNation(DEFAULT_NATIONALITY).flag} {'French'}</Text>
-                        <Text style={styles.settingsHint}>you can change your nationality in settings</Text>
+                        <Text style={styles.ratingFrom}>your rating as {getNation(DEFAULT_NATIONALITY).flag} {DEFAULT_NATIONALITY}</Text>
                       </View>
                     </View>
                   </View>
@@ -776,29 +795,34 @@ const closeCountrySelection = () => {
         {/* — 平均星级卡片列表 — */}
         <FlatList
         data={starsByNation.filter(item =>
-          item.name.toLowerCase().includes(countryFilter.toLowerCase())
+            item.name.toLowerCase().includes(countryFilter.toLowerCase())
         )}
         keyExtractor={i => i.name}
         numColumns={2}
         columnWrapperStyle={styles.countryRow}
         contentContainerStyle={styles.countryList}
         renderItem={({ item }) => (
-          <View style={styles.countryCard}>
+            <TouchableOpacity
+            style={styles.countryCard}
+            activeOpacity={0.7}
+            onPress={() => handleCountryCardPress(item.name)}
+            >
             <Text style={styles.countryCardTitle}>
-              {getNation(item.name).flag} {item.name}
+                {getNation(item.name).flag} {item.name}
             </Text>
             <View style={styles.countryCardStars}>
-              {[1,2,3,4,5].map(i => (
+                {[1,2,3,4,5].map(i => (
                 <Ionicons
-                  key={i}
-                  name={i <= item.stars ? 'star' : 'star-outline'}
-                  size={20}
-                  color="#333"
+                    key={i}
+                    name={i <= item.stars ? 'star' : 'star-outline'}
+                    size={20}
+                    color="#333"
                 />
-              ))}
-            </View>
-          </View>
-        )} />
+                ))}
+      </View>
+    </TouchableOpacity>
+  )}
+/>
 
 
       </Animated.View></>
