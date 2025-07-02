@@ -106,8 +106,8 @@ export default function DetailScreen({ route, navigation }) {
   const [showFeedbackPage, setShowFeedbackPage] = React.useState(false);
   const [userRating, setUserRating] = React.useState(0);
   const [submittingFeedback, setSubmittingFeedback] = React.useState(false);
-  const [scrollPosition, setScrollPosition] = React.useState(0);
   const scrollViewRef = React.useRef(null);
+
   const keyboardOffset = React.useRef(new Animated.Value(0)).current;
   const { dishName } = route.params;
     // ─── 新增：存放每个国家的平均星级（整数 0～5）
@@ -125,24 +125,61 @@ export default function DetailScreen({ route, navigation }) {
 
     // When tapping a country card:
     const handleCountryCardPress = async (country) => {
-    // 1. Dismiss keyboard & animate panel closed
-    Keyboard.dismiss();
-    Animated.timing(countryAnim, {
-        toValue: screenW,
-        duration: 300,
-        useNativeDriver: true,
-    }).start(async () => {
-        setShowCountrySelection(false);
-        // 2. Update rating country & fetch new data
-        setRatingCountry(country);
-        await fetchDishForCountry(country);
-        // scroll position restoration if desired
-        scrollViewRef.current?.scrollTo({
-        y: scrollPositionRef.current,
-        animated: true,
+        // 1. Store current scroll position
+        const currentScrollY = scrollPositionRef.current;
+        
+        // 2. Dismiss keyboard & animate panel closed
+        Keyboard.dismiss();
+        Animated.timing(countryAnim, {
+            toValue: screenW,
+            duration: 300,
+            useNativeDriver: true,
+        }).start(async () => {
+            setShowCountrySelection(false);
+            
+            // 3. Update rating country & fetch new data
+            setRatingCountry(country);
+            await fetchDishForCountry(country);
+            
+            // 4. Restore scroll position with proper delay
+            setTimeout(() => {
+            scrollViewRef.current?.scrollTo({
+                y: currentScrollY,
+                animated: true, // Change to false to avoid the up-down animation
+            });
+            }, 100); // Reduced delay
         });
-    });
-    };
+        };
+
+   const handleSelectNation = async (nationName) => {
+        // 1. Store current scroll position before any changes
+        const currentScrollY = scrollPositionRef.current;
+        
+        // 2. Update UI to show new country
+        setRatingCountry(nationName);
+        setSelectedCountry(nationName);
+
+        // 3. Close the panel first
+        setShowCountrySelection(false);
+        
+        // 4. Animate panel closed
+        Animated.timing(countryAnim, {
+            toValue: screenW,
+            duration: 300,
+            useNativeDriver: true,
+        }).start(async () => {
+            // 5. Fetch the dish data under that nationality
+            await fetchDishForCountry(nationName);
+            
+            // 6. Restore scroll position immediately after data loads
+            requestAnimationFrame(() => {
+            scrollViewRef.current?.scrollTo({
+                y: currentScrollY,
+                animated: true, // Use false to prevent bouncing animation
+            });
+            });
+        });
+        };
   // 假设 dishName = "Pizza Margherita"
   const words = (dishData?.name || "Dish").split(' ');
   const first = words.shift();         // "Pizza"
@@ -166,15 +203,6 @@ const closeCountrySelection = () => {
     // hide the panel
     setShowCountrySelection(false);
 
-    // wait a tick for the detail view to re-layout, then restore scroll
-    setTimeout(() => {
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({
-          y: scrollPositionRef.current,
-          animated: true,  // or true if you want a smooth slide
-        });
-      }
-    }, 50);
   });
 };
   const openCountrySelection = () => {
@@ -234,34 +262,27 @@ const closeCountrySelection = () => {
     if (!dishData) return;
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/dishes/${encodeURIComponent(dishData.name)}`, {
+        const response = await fetch(`${API_BASE_URL}/dishes/${encodeURIComponent(dishData.name)}`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'X-User-Nationality': country,
+            'Content-Type': 'application/json',
+            'X-User-Nationality': country,
         },
-      });
+        });
 
-      if (response.ok) {
+        if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
-          setDishData(data.data);
-          // Restore scroll position with smoother, slower animation after data loads
-          setTimeout(() => {
-            scrollViewRef.current?.scrollTo({ 
-              y: scrollPosition, 
-              animated: true,
-              // Make the animation slower and smoother
-            });
-          }, 300);
+            setDishData(data.data);
+            // Remove the scroll restoration from here since we handle it in the calling functions
         }
-      }
+        }
     } catch (err) {
-      console.log('Error fetching dish for country:', err.message);
+        console.log('Error fetching dish for country:', err.message);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+    };
 
   const handleCountrySelection = (country) => {
     setSelectedCountry(country);
@@ -582,10 +603,11 @@ const closeCountrySelection = () => {
                 alwaysBounceVertical={false}
                 bouncesZoom={false}
                 showsVerticalScrollIndicator={false}
+                
+                onScroll={({ nativeEvent }) => {
+                scrollPositionRef.current = nativeEvent.contentOffset.y;
+                }}
                 scrollEventThrottle={16}
-                onScroll={(event) => {
-                    scrollPositionRef.current = event.nativeEvent.contentOffset.y;
-                } }
               >
                 <ImageBackground
                   source={dishData && dishData.img ? { uri: getImageUrl(dishData.img) } : require('./imgs/Fiorentina_Steak.jpg')}
@@ -761,7 +783,7 @@ const closeCountrySelection = () => {
           <View style={styles.headerLeft}>
             <TouchableOpacity
 
-              onPress={closeCountrySelection}
+              onPress={() => handleSelectNation(ratingCountry)}
               activeOpacity={0.6}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -805,8 +827,8 @@ const closeCountrySelection = () => {
         renderItem={({ item }) => (
             <TouchableOpacity
             style={styles.countryCard}
-            activeOpacity={0.7}
-            onPress={() => handleCountryCardPress(item.name)}
+            activeOpacity={0.8}
+            onPress={() => handleSelectNation(item.name)}
             >
             <Text style={styles.countryCardTitle}>
                 {getNation(item.name).flag} {item.name}
